@@ -1,9 +1,11 @@
-﻿import { Component, OnInit } from '@angular/core';
+﻿import { AfterContentInit, Component, OnInit } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { first } from 'rxjs/operators';
 
 import { AlertService, AuthenticationService } from '@/_services';
+import { DataService } from '@/_services/dataService';
+import { Subject } from 'rxjs';
 
 @Component({ templateUrl: 'login.component.html' })
 export class LoginComponent implements OnInit {
@@ -17,7 +19,9 @@ export class LoginComponent implements OnInit {
         private route: ActivatedRoute,
         private router: Router,
         private authenticationService: AuthenticationService,
-        private alertService: AlertService
+        private alertService: AlertService,
+        private service: DataService,
+
     ) {
         // redirect to home if already logged in
         if (this.authenticationService.currentUserValue) {
@@ -25,9 +29,11 @@ export class LoginComponent implements OnInit {
         }
     }
 
+    private subject = new Subject<any>();
+
     ngOnInit() {
         this.loginForm = this.formBuilder.group({
-            username: ['', Validators.required],
+            userName: ['', Validators.required],
             password: ['', Validators.required]
         });
 
@@ -50,15 +56,21 @@ export class LoginComponent implements OnInit {
         }
 
         this.loading = true;
-        this.authenticationService.login(this.f.username.value, this.f.password.value)
-            .pipe(first())
-            .subscribe(
-                data => {
-                    this.router.navigate([this.returnUrl]);
-                },
-                error => {
-                    this.alertService.error(error);
-                    this.loading = false;
-                });
+        const data = {
+            userName: this.f.userName.value,
+            password: this.f.password.value
+        }
+        this.service.login(data).subscribe(res => {
+            console.log(res);
+            if (res.status === "success") {
+                this.service.onclick();
+                localStorage.setItem("token", res.token);
+                localStorage.setItem("role", res.role);
+                this.router.navigate([this.returnUrl]);
+            }
+        }, error => {
+            console.log(error);
+        })
+      
     }
 }

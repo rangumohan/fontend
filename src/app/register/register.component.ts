@@ -1,22 +1,23 @@
 ﻿import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { first } from 'rxjs/operators';
-
 import { AlertService, UserService, AuthenticationService } from '@/_services';
+import { DataService } from '@/_services/dataService';
 
 @Component({ templateUrl: 'register.component.html' })
 export class RegisterComponent implements OnInit {
     registerForm: FormGroup;
     loading = false;
     submitted = false;
+    role: any = ["user", "auditor"]
 
     constructor(
         private formBuilder: FormBuilder,
         private router: Router,
         private authenticationService: AuthenticationService,
-        private userService: UserService,
-        private alertService: AlertService
+        // private userService: UserService,
+        private alertService: AlertService,
+        private userService: DataService
     ) {
         // redirect to home if already logged in
         if (this.authenticationService.currentUserValue) {
@@ -26,10 +27,11 @@ export class RegisterComponent implements OnInit {
 
     ngOnInit() {
         this.registerForm = this.formBuilder.group({
+            userName: ['', Validators.required],
+            password: ['', [Validators.required, Validators.minLength(6)]],
             firstName: ['', Validators.required],
             lastName: ['', Validators.required],
-            username: ['', Validators.required],
-            password: ['', [Validators.required, Validators.minLength(6)]]
+            role: ['', Validators.required]
         });
     }
 
@@ -37,6 +39,7 @@ export class RegisterComponent implements OnInit {
     get f() { return this.registerForm.controls; }
 
     onSubmit() {
+
         this.submitted = true;
 
         // reset alerts on submit
@@ -48,16 +51,33 @@ export class RegisterComponent implements OnInit {
         }
 
         this.loading = true;
-        this.userService.register(this.registerForm.value)
-            .pipe(first())
-            .subscribe(
-                data => {
-                    this.alertService.success('Registration successful', true);
-                    this.router.navigate(['/login']);
-                },
-                error => {
-                    this.alertService.error(error);
-                    this.loading = false;
-                });
+        // const formdata=this.registerForm.setValue({
+        //     userName: this.registerForm.value.userName,
+        //     password: this.registerForm.value.password,
+        //     firstName: this.registerForm.value.firstName,
+        //     lastName: this.registerForm.value.lastName,
+        //     role: this.registerForm.value.role
+        // })
+        const data = {
+            userName: this.registerForm.value.userName,
+            password: this.registerForm.value.password,
+            firstName: this.registerForm.value.firstName,
+            lastName: this.registerForm.value.lastName,
+            role: this.registerForm.value.role
+        }
+        console.log("data  ", data);
+        debugger
+        this.userService.userRegister(data).subscribe(res => {
+            debugger
+            console.log(res);
+            if (res.status = "success") {
+                this.alertService.success('Registration successful', true);
+                this.router.navigate(['/login']);
+            }
+        }, error => {
+
+            this.alertService.error(error);
+        })
+
     }
 }
